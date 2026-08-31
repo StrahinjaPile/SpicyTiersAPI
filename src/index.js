@@ -5,7 +5,7 @@ const corsHeaders = {
 };
 
 function json(data, status = 200) {
-    return new Response(JSON.stringify(data), {
+    return new Response(JSON.stringify(data, null, 2), {
         status,
         headers: {
             "Content-Type": "application/json",
@@ -15,7 +15,16 @@ function json(data, status = 200) {
 }
 
 export default {
+
     async fetch(request, env) {
+
+        const url = new URL(request.url);
+
+        /*
+        ========================================
+        CORS
+        ========================================
+        */
 
         if (request.method === "OPTIONS") {
             return new Response(null, {
@@ -24,11 +33,10 @@ export default {
             });
         }
 
-        const url = new URL(request.url);
 
         /*
         ========================================
-        GET /api/health
+        API HEALTH
         ========================================
         */
 
@@ -36,17 +44,111 @@ export default {
             url.pathname === "/api/health" &&
             request.method === "GET"
         ) {
+
             return json({
                 success: true,
                 message: "SpicyTiers API is online",
                 version: "1.0.0"
             });
+
         }
 
 
         /*
         ========================================
-        GET /api/player/:username
+        LEADERBOARD
+        ========================================
+        */
+
+        if (
+            url.pathname.startsWith("/api/leaderboard/") &&
+            request.method === "GET"
+        ) {
+
+            const mode =
+                decodeURIComponent(
+                    url.pathname
+                        .split("/")
+                        .pop()
+                );
+
+
+            const allowedModes = [
+                "sword",
+                "axe",
+                "vanilla",
+                "uhc",
+                "smp",
+                "netheriteop",
+                "pot",
+                "mace"
+            ];
+
+
+            if (!allowedModes.includes(mode)) {
+
+                return json({
+                    success: false,
+                    error: "Invalid gamemode"
+                }, 400);
+
+            }
+
+
+            const leaderboard = [
+
+                {
+                    username: "StrahinjaPile",
+                    uuid: "00000000-0000-0000-0000-000000000001",
+                    tier: "HT2",
+                    elo: 1900
+                },
+
+                {
+                    username: "Player2",
+                    uuid: "00000000-0000-0000-0000-000000000002",
+                    tier: "LT2",
+                    elo: 1800
+                },
+
+                {
+                    username: "Player3",
+                    uuid: "00000000-0000-0000-0000-000000000003",
+                    tier: "HT3",
+                    elo: 1650
+                },
+
+                {
+                    username: "Player4",
+                    uuid: "00000000-0000-0000-0000-000000000004",
+                    tier: "LT3",
+                    elo: 1500
+                }
+
+            ];
+
+
+            leaderboard.sort(
+                (a, b) => b.elo - a.elo
+            );
+
+
+            return json({
+
+                success: true,
+
+                mode: mode,
+
+                players: leaderboard
+
+            });
+
+        }
+
+
+        /*
+        ========================================
+        PLAYER
         ========================================
         */
 
@@ -57,27 +159,28 @@ export default {
 
             const username =
                 decodeURIComponent(
-                    url.pathname.split("/").pop()
+                    url.pathname
+                        .split("/")
+                        .pop()
                 );
 
+
             if (!username) {
+
                 return json({
                     success: false,
                     error: "Missing username"
                 }, 400);
+
             }
 
-            /*
-             * ZA SADA TEST DATA.
-             *
-             * Kasnije ovde povezujemo
-             * pravu bazu.
-             */
 
             return json({
+
                 success: true,
 
                 player: {
+
                     username: username,
 
                     uuid: null,
@@ -121,66 +224,30 @@ export default {
                         elo: 1000,
                         tier: "LT5"
                     }
+
                 }
+
             });
+
         }
 
 
         /*
         ========================================
-        POST /api/player
-        ========================================
-        */
-
-        if (
-            url.pathname === "/api/player" &&
-            request.method === "POST"
-        ) {
-
-            try {
-
-                const body =
-                    await request.json();
-
-                if (!body.username) {
-                    return json({
-                        success: false,
-                        error: "Username is required"
-                    }, 400);
-                }
-
-                /*
-                 * Kasnije ovde upisujemo
-                 * playera u bazu.
-                 */
-
-                return json({
-                    success: true,
-
-                    message: "Player received",
-
-                    player: body
-                });
-
-            } catch {
-
-                return json({
-                    success: false,
-                    error: "Invalid JSON"
-                }, 400);
-            }
-        }
-
-
-        /*
-        ========================================
-        404
+        UNKNOWN ENDPOINT
         ========================================
         */
 
         return json({
+
             success: false,
-            error: "Endpoint not found"
+
+            error: "Endpoint not found",
+
+            path: url.pathname
+
         }, 404);
+
     }
+
 };
