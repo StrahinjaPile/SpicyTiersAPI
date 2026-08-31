@@ -1,0 +1,14 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "spicytiers-api",
+  "main": "src/index.js",
+  "compatibility_date": "2026-08-31",
+
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "spicytiers",
+      "database_id": "OVDE_ID_BAZE"
+    }
+  ]
+}
