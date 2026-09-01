@@ -20,7 +20,6 @@ function json(data, status = 200) {
         ),
         {
             status,
-
             headers: {
                 "Content-Type":
                     "application/json",
@@ -36,6 +35,7 @@ function json(data, status = 200) {
             }
         }
     );
+
 }
 
 
@@ -72,6 +72,7 @@ function getTierFromElo(elo) {
         return "LT5";
 
     return "UNRANKED";
+
 }
 
 
@@ -150,13 +151,17 @@ export default {
 
             return json({
 
-                success: true,
+                success:
+                    true,
+
 
                 message:
                     "SpicyTiers API is online",
 
+
                 version:
                     "2.1.0",
+
 
                 database:
                     "D1"
@@ -168,192 +173,18 @@ export default {
 
         /*
         =========================
-        OVERALL LEADERBOARD
+        LEADERBOARD
         =========================
 
-        Overall ELO =
-        TOTAL ELO FROM ALL MODES
-
-        Each player also returns
-        every individual mode
-        and its tier.
-        */
-
-        if (
-            method === "GET" &&
-            path === "/leaderboard"
-        ) {
-
-            const playersResult =
-                await env.DB.prepare(`
-                    SELECT
-                        p.uuid,
-                        p.username
-                    FROM players p
-                    ORDER BY p.username ASC
-                `)
-                .all();
-
-
-            const players = [];
-
-
-            for (
-                const player
-                of playersResult.results
-            ) {
-
-                const statsResult =
-                    await env.DB.prepare(`
-                        SELECT
-                            mode,
-                            elo
-                        FROM player_stats
-                        WHERE uuid = ?
-                    `)
-                    .bind(
-                        player.uuid
-                    )
-                    .all();
-
-
-                let totalElo =
-                    0;
-
-
-                const modes =
-                    {};
-
-
-                for (
-                    const mode
-                    of MODES
-                ) {
-
-                    const stat =
-                        statsResult.results.find(
-                            s =>
-                                s.mode ===
-                                mode
-                        );
-
-
-                    const elo =
-                        stat
-                            ? (
-                                Number(
-                                    stat.elo
-                                ) || 0
-                            )
-                            : 0;
-
-
-                    /*
-                    =========================
-                    ADD TO TOTAL ELO
-                    =========================
-                    */
-
-                    totalElo +=
-                        elo;
-
-
-                    /*
-                    =========================
-                    SAVE INDIVIDUAL MODE
-                    =========================
-                    */
-
-                    modes[mode] = {
-
-                        elo:
-
-                            elo,
-
-
-                        tier:
-
-                            getTierFromElo(
-                                elo
-                            )
-
-                    };
-
-                }
-
-
-                players.push({
-
-                    username:
-
-                        player.username,
-
-
-                    uuid:
-
-                        player.uuid,
-
-
-                    /*
-                    No average tier here.
-                    Individual tiers are
-                    inside modes.
-                    */
-
-                    elo:
-
-                        totalElo,
-
-
-                    modes:
-
-                        modes
-
-                });
-
-            }
-
-
-            /*
-            =========================
-            SORT BY TOTAL ELO
-            =========================
-            */
-
-            players.sort(
-                (
-                    a,
-                    b
-                ) =>
-
-                    b.elo -
-                    a.elo
-            );
-
-
-            return json({
-
-                success:
-                    true,
-
-
-                mode:
-                    "overall",
-
-
-                players:
-
-                    players
-
-            });
-
-        }
-
-
-        /*
-        =========================
-        GAMEMODE LEADERBOARD
-        =========================
+        /leaderboard/overall
+        /leaderboard/sword
+        /leaderboard/axe
+        /leaderboard/mace
+        /leaderboard/pot
+        /leaderboard/uhc
+        /leaderboard/vanilla
+        /leaderboard/smp
+        /leaderboard/nethop
         */
 
         if (
@@ -371,6 +202,189 @@ export default {
                     )
                     .toLowerCase();
 
+
+            /*
+            =========================
+            OVERALL LEADERBOARD
+            =========================
+            */
+
+            if (
+                mode ===
+                "overall"
+            ) {
+
+                const playersResult =
+                    await env.DB.prepare(`
+                        SELECT
+                            uuid,
+                            username
+                        FROM players
+                        ORDER BY username ASC
+                    `)
+                    .all();
+
+
+                const players =
+                    [];
+
+
+                for (
+                    const player
+                    of playersResult.results
+                ) {
+
+                    const statsResult =
+                        await env.DB.prepare(`
+                            SELECT
+                                mode,
+                                elo
+                            FROM player_stats
+                            WHERE uuid = ?
+                        `)
+                        .bind(
+                            player.uuid
+                        )
+                        .all();
+
+
+                    const modes =
+                        {};
+
+
+                    let totalElo =
+                        0;
+
+
+                    /*
+                    =========================
+                    GET EVERY GAMEMODE
+                    =========================
+                    */
+
+                    for (
+                        const gameMode
+                        of MODES
+                    ) {
+
+                        const stat =
+                            statsResult.results.find(
+                                s =>
+                                    s.mode ===
+                                    gameMode
+                            );
+
+
+                        const elo =
+                            stat
+
+                                ? (
+                                    Number(
+                                        stat.elo
+                                    ) || 0
+                                )
+
+                                : 0;
+
+
+                        /*
+                        ADD TO TOTAL ELO
+                        */
+
+                        totalElo +=
+                            elo;
+
+
+                        /*
+                        SAVE MODE
+                        */
+
+                        modes[gameMode] = {
+
+                            elo:
+                                elo,
+
+
+                            tier:
+                                getTierFromElo(
+                                    elo
+                                )
+
+                        };
+
+                    }
+
+
+                    players.push({
+
+                        username:
+                            player.username,
+
+
+                        uuid:
+                            player.uuid,
+
+
+                        /*
+                        TOTAL ELO
+                        */
+
+                        elo:
+                            totalElo,
+
+
+                        /*
+                        ALL GAMEMODES
+                        */
+
+                        modes:
+                            modes
+
+                    });
+
+                }
+
+
+                /*
+                =========================
+                SORT BY TOTAL ELO
+                =========================
+                */
+
+                players.sort(
+                    (
+                        a,
+                        b
+                    ) =>
+
+                        b.elo -
+                        a.elo
+                );
+
+
+                return json({
+
+                    success:
+                        true,
+
+
+                    mode:
+                        "overall",
+
+
+                    players:
+                        players
+
+                });
+
+            }
+
+
+            /*
+            =========================
+            VALIDATE NORMAL MODE
+            =========================
+            */
 
             if (
                 !validMode(
@@ -396,16 +410,23 @@ export default {
             }
 
 
+            /*
+            =========================
+            GAMEMODE LEADERBOARD
+            =========================
+            */
+
             const result =
                 await env.DB.prepare(`
                     SELECT
                         p.uuid,
                         p.username,
                         s.elo
+
                     FROM players p
 
                     INNER JOIN player_stats s
-                    ON p.uuid = s.uuid
+                        ON p.uuid = s.uuid
 
                     WHERE s.mode = ?
 
@@ -430,24 +451,20 @@ export default {
                         return {
 
                             username:
-
                                 player.username,
 
 
                             uuid:
-
                                 player.uuid,
 
 
                             tier:
-
                                 getTierFromElo(
                                     elo
                                 ),
 
 
                             elo:
-
                                 elo
 
                         };
@@ -463,12 +480,10 @@ export default {
 
 
                 mode:
-
                     mode,
 
 
                 players:
-
                     players
 
             });
@@ -484,8 +499,7 @@ export default {
 
         if (
             method === "POST" &&
-            path ===
-            "/player/sync"
+            path === "/player/sync"
         ) {
 
             try {
@@ -618,17 +632,11 @@ export default {
                 const player =
                     await env.DB.prepare(`
                         SELECT
-
                             uuid,
-
                             username,
-
                             created_at,
-
                             updated_at
-
                         FROM players
-
                         WHERE uuid = ?
                     `)
                     .bind(
@@ -648,7 +656,6 @@ export default {
 
 
                     player:
-
                         player
 
                 });
@@ -701,17 +708,11 @@ export default {
             const player =
                 await env.DB.prepare(`
                     SELECT
-
                         uuid,
-
                         username,
-
                         created_at,
-
                         updated_at
-
                     FROM players
-
                     WHERE uuid = ?
                 `)
                 .bind(
@@ -741,19 +742,12 @@ export default {
             const statsResult =
                 await env.DB.prepare(`
                     SELECT
-
                         mode,
-
                         elo,
-
                         wins,
-
                         losses,
-
                         games_played
-
                     FROM player_stats
-
                     WHERE uuid = ?
                 `)
                 .bind(
@@ -769,6 +763,12 @@ export default {
             let totalElo =
                 0;
 
+
+            /*
+            =========================
+            GET EVERY MODE
+            =========================
+            */
 
             for (
                 const mode
@@ -802,12 +802,10 @@ export default {
                 modes[mode] = {
 
                     elo:
-
                         elo,
 
 
                     tier:
-
                         getTierFromElo(
                             elo
                         ),
@@ -856,6 +854,12 @@ export default {
             }
 
 
+            /*
+            =========================
+            RESPONSE
+            =========================
+            */
+
             return json({
 
                 success:
@@ -865,22 +869,18 @@ export default {
                 player: {
 
                     username:
-
                         player.username,
 
 
                     uuid:
-
                         player.uuid,
 
 
                     created_at:
-
                         player.created_at,
 
 
                     updated_at:
-
                         player.updated_at,
 
 
@@ -889,16 +889,14 @@ export default {
                     */
 
                     elo:
-
                         totalElo,
 
 
                     /*
-                    EVERY MODE
+                    ALL GAMEMODES
                     */
 
                     modes:
-
                         modes
 
                 }
@@ -925,7 +923,6 @@ export default {
 
 
             path:
-
                 path
 
         }, 404);
