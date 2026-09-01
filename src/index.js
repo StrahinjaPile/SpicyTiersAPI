@@ -9,35 +9,22 @@ const MODES = [
     "nethop"
 ];
 
-
 function json(data, status = 200) {
-
     return new Response(
         JSON.stringify(data, null, 2),
         {
             status,
-
             headers: {
-                "Content-Type":
-                    "application/json",
-
-                "Access-Control-Allow-Origin":
-                    "*",
-
-                "Access-Control-Allow-Methods":
-                    "GET, POST, OPTIONS",
-
-                "Access-Control-Allow-Headers":
-                    "Content-Type"
+                "Content-Type": "application/json",
+                "Access-Control-Allow-Origin": "*",
+                "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+                "Access-Control-Allow-Headers": "Content-Type"
             }
         }
     );
-
 }
 
-
 function getTierFromElo(elo) {
-
     if (elo >= 2250) return "HT1";
     if (elo >= 2000) return "LT1";
     if (elo >= 1900) return "HT2";
@@ -50,473 +37,36 @@ function getTierFromElo(elo) {
     if (elo >= 1000) return "LT5";
 
     return "UNRANKED";
-
 }
 
-
-/*
-====================================
-SAMPLE PLAYERS
-====================================
-
-Ovo je privremena baza podataka.
-
-Kasnije ćemo ovo zameniti pravom
-Cloudflare D1 bazom.
-*/
-
-
-const PLAYERS = {
-
-
-    "00000000-0000-0000-0000-000000000001": {
-
-        username:
-            "StrahinjaPile",
-
-        uuid:
-            "00000000-0000-0000-0000-000000000001",
-
-        sword: {
-            elo: 1900
-        },
-
-        axe: {
-            elo: 1650
-        },
-
-        mace: {
-            elo: 1500
-        },
-
-        pot: {
-            elo: 1200
-        },
-
-        uhc: {
-            elo: 1800
-        },
-
-        vanilla: {
-            elo: 1300
-        },
-
-        smp: {
-            elo: 1100
-        },
-
-        nethop: {
-            elo: 1000
-        }
-
-    },
-
-
-    "00000000-0000-0000-0000-000000000002": {
-
-        username:
-            "Player2",
-
-        uuid:
-            "00000000-0000-0000-0000-000000000002",
-
-        sword: {
-            elo: 1800
-        },
-
-        axe: {
-            elo: 1500
-        },
-
-        mace: {
-            elo: 1300
-        },
-
-        pot: {
-            elo: 1000
-        },
-
-        uhc: {
-            elo: 1650
-        },
-
-        vanilla: {
-            elo: 1200
-        },
-
-        smp: {
-            elo: 1000
-        },
-
-        nethop: {
-            elo: 0
-        }
-
-    },
-
-
-    "00000000-0000-0000-0000-000000000003": {
-
-        username:
-            "Player3",
-
-        uuid:
-            "00000000-0000-0000-0000-000000000003",
-
-        sword: {
-            elo: 1650
-        },
-
-        axe: {
-            elo: 1800
-        },
-
-        mace: {
-            elo: 1400
-        },
-
-        pot: {
-            elo: 1500
-        },
-
-        uhc: {
-            elo: 1200
-        },
-
-        vanilla: {
-            elo: 1000
-        },
-
-        smp: {
-            elo: 1300
-        },
-
-        nethop: {
-            elo: 1100
-        }
-
-    },
-
-
-    "00000000-0000-0000-0000-000000000004": {
-
-        username:
-            "Player4",
-
-        uuid:
-            "00000000-0000-0000-0000-000000000004",
-
-        sword: {
-            elo: 1500
-        },
-
-        axe: {
-            elo: 1200
-        },
-
-        mace: {
-            elo: 1650
-        },
-
-        pot: {
-            elo: 1300
-        },
-
-        uhc: {
-            elo: 1100
-        },
-
-        vanilla: {
-            elo: 1800
-        },
-
-        smp: {
-            elo: 1500
-        },
-
-        nethop: {
-            elo: 1200
-        }
-
-    }
-
-};
-
-
-/*
-====================================
-GET MODE LEADERBOARD
-====================================
-*/
-
-
-function getModeLeaderboard(mode) {
-
-
-    const players =
-        Object.values(PLAYERS)
-
-
-            .map(
-                player => {
-
-
-                    const stats =
-                        player[mode]
-                        ||
-                        { elo: 0 };
-
-
-                    const elo =
-                        Number(
-                            stats.elo
-                        )
-                        ||
-                        0;
-
-
-                    return {
-
-                        username:
-                            player.username,
-
-                        uuid:
-                            player.uuid,
-
-                        tier:
-                            getTierFromElo(
-                                elo
-                            ),
-
-                        elo:
-                            elo
-
-                    };
-
-
-                }
-            )
-
-
-            .sort(
-                (a, b) =>
-                    b.elo - a.elo
-            );
-
-
-    return players;
-
-
+function validMode(mode) {
+    return MODES.includes(mode);
 }
-
-
-/*
-====================================
-GET OVERALL LEADERBOARD
-====================================
-
-Overall ELO =
-prosek svih gamemode ELO-a.
-
-Kasnije možemo promeniti formulu.
-*/
-
-
-function getOverallLeaderboard() {
-
-
-    const players =
-        Object.values(PLAYERS)
-
-
-            .map(
-                player => {
-
-
-                    let totalElo =
-                        0;
-
-
-                    let playedModes =
-                        0;
-
-
-                    for (
-                        const mode
-                        of MODES
-                    ) {
-
-
-                        const stats =
-                            player[mode];
-
-
-                        if (
-                            stats
-                        ) {
-
-
-                            const elo =
-                                Number(
-                                    stats.elo
-                                )
-                                ||
-                                0;
-
-
-                            /*
-                            Ne računamo 0 ELO
-                            kao odigrani mode.
-                            */
-
-
-                            if (
-                                elo > 0
-                            ) {
-
-
-                                totalElo +=
-                                    elo;
-
-
-                                playedModes++;
-
-
-                            }
-
-
-                        }
-
-
-                    }
-
-
-                    let overallElo =
-                        0;
-
-
-                    if (
-                        playedModes > 0
-                    ) {
-
-
-                        overallElo =
-
-                            Math.round(
-
-                                totalElo /
-
-                                playedModes
-
-                            );
-
-
-                    }
-
-
-                    return {
-
-                        username:
-                            player.username,
-
-                        uuid:
-                            player.uuid,
-
-                        tier:
-                            getTierFromElo(
-                                overallElo
-                            ),
-
-                        elo:
-                            overallElo
-
-                    };
-
-
-                }
-            )
-
-
-            .sort(
-                (a, b) =>
-                    b.elo - a.elo
-            );
-
-
-    return players;
-
-
-}
-
-
-/*
-====================================
-MAIN WORKER
-====================================
-*/
-
 
 export default {
 
-
-    async fetch(
-        request,
-        env,
-        ctx
-    ) {
-
+    async fetch(request, env) {
 
         /*
         =========================
-        OPTIONS / CORS
+        CORS
         =========================
         */
 
-
-        if (
-            request.method ===
-            "OPTIONS"
-        ) {
-
-
-            return new Response(
-                null,
-                {
-                    status: 204,
-
-                    headers: {
-
-                        "Access-Control-Allow-Origin":
-                            "*",
-
-                        "Access-Control-Allow-Methods":
-                            "GET, POST, OPTIONS",
-
-                        "Access-Control-Allow-Headers":
-                            "Content-Type"
-
-                    }
-
+        if (request.method === "OPTIONS") {
+            return new Response(null, {
+                status: 204,
+                headers: {
+                    "Access-Control-Allow-Origin": "*",
+                    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+                    "Access-Control-Allow-Headers": "Content-Type"
                 }
-            );
-
-
+            });
         }
 
-
-        const url =
-            new URL(
-                request.url
-            );
-
-
-        const path =
-            url.pathname;
-
-
-        const method =
-            request.method;
-
+        const url = new URL(request.url);
+        const path = url.pathname;
+        const method = request.method;
 
         /*
         =========================
@@ -524,34 +74,17 @@ export default {
         =========================
         */
 
-
         if (
-
-            method === "GET"
-
-            &&
-
+            method === "GET" &&
             path === "/health"
-
         ) {
-
-
             return json({
-
-                success:
-                    true,
-
-                message:
-                    "SpicyTiers API is online",
-
-                version:
-                    "1.0.0"
-
+                success: true,
+                message: "SpicyTiers API is online",
+                version: "2.0.0",
+                database: "D1"
             });
-
-
         }
-
 
         /*
         =========================
@@ -559,38 +92,38 @@ export default {
         =========================
         */
 
-
         if (
-
-            method === "GET"
-
-            &&
-
+            method === "GET" &&
             path === "/leaderboard"
-
         ) {
 
+            const result = await env.DB.prepare(`
+                SELECT
+                    p.uuid,
+                    p.username,
+                    ROUND(AVG(s.elo)) AS elo
+                FROM players p
+                INNER JOIN player_stats s
+                    ON p.uuid = s.uuid
+                WHERE s.elo > 0
+                GROUP BY p.uuid, p.username
+                HAVING COUNT(s.mode) > 0
+                ORDER BY elo DESC
+            `).all();
 
-            const players =
-                getOverallLeaderboard();
-
+            const players = result.results.map(player => ({
+                username: player.username,
+                uuid: player.uuid,
+                tier: getTierFromElo(Number(player.elo) || 0),
+                elo: Number(player.elo) || 0
+            }));
 
             return json({
-
-                success:
-                    true,
-
-                mode:
-                    "overall",
-
-                players:
-                    players
-
+                success: true,
+                mode: "overall",
+                players
             });
-
-
         }
-
 
         /*
         =========================
@@ -598,265 +131,162 @@ export default {
         =========================
         */
 
-
         if (
-
-            method === "GET"
-
-            &&
-
-            path.startsWith(
-                "/leaderboard/"
-            )
-
+            method === "GET" &&
+            path.startsWith("/leaderboard/")
         ) {
 
+            const mode = path
+                .replace("/leaderboard/", "")
+                .toLowerCase();
 
-            const mode =
-
-                path
-
-                    .replace(
-                        "/leaderboard/",
-                        ""
-                    )
-
-                    .toLowerCase();
-
-
-            if (
-
-                !MODES.includes(
+            if (!validMode(mode)) {
+                return json({
+                    success: false,
+                    error: "Invalid gamemode",
                     mode
-                )
-
-            ) {
-
-
-                return json(
-
-                    {
-
-                        success:
-                            false,
-
-                        error:
-                            "Invalid gamemode",
-
-                        mode:
-                            mode
-
-                    },
-
-                    400
-
-                );
-
-
+                }, 400);
             }
 
+            const result = await env.DB.prepare(`
+                SELECT
+                    p.uuid,
+                    p.username,
+                    s.elo
+                FROM players p
+                INNER JOIN player_stats s
+                    ON p.uuid = s.uuid
+                WHERE s.mode = ?
+                ORDER BY s.elo DESC
+            `)
+            .bind(mode)
+            .all();
 
-            const players =
-                getModeLeaderboard(
-                    mode
-                );
-
+            const players = result.results.map(player => ({
+                username: player.username,
+                uuid: player.uuid,
+                tier: getTierFromElo(Number(player.elo) || 0),
+                elo: Number(player.elo) || 0
+            }));
 
             return json({
-
-                success:
-                    true,
-
-                mode:
-                    mode,
-
-                players:
-                    players
-
+                success: true,
+                mode,
+                players
             });
-
-
         }
-
 
         /*
         =========================
         PLAYER SYNC
         =========================
+
+        Minecraft client sends:
+
+        {
+            uuid: "...",
+            username: "..."
+        }
+
         */
 
-
         if (
-
-            method === "POST"
-
-            &&
-
+            method === "POST" &&
             path === "/player/sync"
-
         ) {
-
 
             try {
 
+                const body = await request.json();
 
-                const body =
-                    await request.json();
+                const uuid = body.uuid;
+                const username = body.username;
 
-
-                const uuid =
-                    body.uuid;
-
-
-                const username =
-                    body.username;
-
-
-                if (
-
-                    !uuid
-
-                    ||
-
-                    !username
-
-                ) {
-
-
-                    return json(
-
-                        {
-
-                            success:
-                                false,
-
-                            error:
-                                "UUID and username are required"
-
-                        },
-
-                        400
-
-                    );
-
-
+                if (!uuid || !username) {
+                    return json({
+                        success: false,
+                        error: "UUID and username are required"
+                    }, 400);
                 }
 
-
                 /*
-                CREATE PLAYER
+                =========================
+                CREATE / UPDATE PLAYER
+                =========================
                 */
 
+                await env.DB.prepare(`
+                    INSERT INTO players (
+                        uuid,
+                        username
+                    )
+                    VALUES (?, ?)
+                    ON CONFLICT(uuid)
+                    DO UPDATE SET
+                        username = excluded.username,
+                        updated_at = CURRENT_TIMESTAMP
+                `)
+                .bind(uuid, username)
+                .run();
 
-                if (
+                /*
+                =========================
+                CREATE DEFAULT STATS
+                =========================
+                */
 
-                    !PLAYERS[uuid]
+                for (const mode of MODES) {
 
-                ) {
-
-
-                    PLAYERS[uuid] = {
-
-
-                        username:
-                            username,
-
-
-                        uuid:
+                    await env.DB.prepare(`
+                        INSERT OR IGNORE INTO player_stats (
                             uuid,
-
-
-                        sword:
-                            { elo: 0 },
-
-
-                        axe:
-                            { elo: 0 },
-
-
-                        mace:
-                            { elo: 0 },
-
-
-                        pot:
-                            { elo: 0 },
-
-
-                        uhc:
-                            { elo: 0 },
-
-
-                        vanilla:
-                            { elo: 0 },
-
-
-                        smp:
-                            { elo: 0 },
-
-
-                        nethop:
-                            { elo: 0 }
-
-
-                    };
-
+                            mode,
+                            elo,
+                            wins,
+                            losses,
+                            games_played
+                        )
+                        VALUES (?, ?, 1000, 0, 0, 0)
+                    `)
+                    .bind(uuid, mode)
+                    .run();
 
                 }
 
-
                 /*
-                UPDATE USERNAME
+                =========================
+                GET PLAYER
+                =========================
                 */
 
-
-                PLAYERS[uuid].username =
-                    username;
-
+                const player = await env.DB.prepare(`
+                    SELECT
+                        uuid,
+                        username,
+                        created_at,
+                        updated_at
+                    FROM players
+                    WHERE uuid = ?
+                `)
+                .bind(uuid)
+                .first();
 
                 return json({
-
-                    success:
-                        true,
-
-                    message:
-                        "Player synced",
-
-                    player:
-                        PLAYERS[uuid]
-
+                    success: true,
+                    message: "Player synced",
+                    player
                 });
 
+            } catch (error) {
 
+                console.error(error);
+
+                return json({
+                    success: false,
+                    error: "Failed to sync player"
+                }, 500);
             }
-
-
-            catch (
-                error
-            ) {
-
-
-                return json(
-
-                    {
-
-                        success:
-                            false,
-
-                        error:
-                            "Invalid request body"
-
-                    },
-
-                    400
-
-                );
-
-
-            }
-
-
         }
-
 
         /*
         =========================
@@ -864,160 +294,96 @@ export default {
         =========================
         */
 
-
         if (
-
-            method === "GET"
-
-            &&
-
-            path.startsWith(
-                "/player/"
-            )
-
+            method === "GET" &&
+            path.startsWith("/player/")
         ) {
 
+            const uuid = path
+                .replace("/player/", "");
 
-            const uuid =
+            const player = await env.DB.prepare(`
+                SELECT
+                    uuid,
+                    username,
+                    created_at,
+                    updated_at
+                FROM players
+                WHERE uuid = ?
+            `)
+            .bind(uuid)
+            .first();
 
-                path.replace(
-                    "/player/",
-                    ""
-                );
-
-
-            const player =
-                PLAYERS[uuid];
-
-
-            if (
-                !player
-            ) {
-
-
-                return json(
-
-                    {
-
-                        success:
-                            false,
-
-                        error:
-                            "Player not found"
-
-                    },
-
-                    404
-
-                );
-
-
+            if (!player) {
+                return json({
+                    success: false,
+                    error: "Player not found"
+                }, 404);
             }
 
+            const statsResult = await env.DB.prepare(`
+                SELECT
+                    mode,
+                    elo,
+                    wins,
+                    losses,
+                    games_played
+                FROM player_stats
+                WHERE uuid = ?
+            `)
+            .bind(uuid)
+            .all();
 
-            /*
-            CREATE RESPONSE
-            */
+            const modes = {};
 
+            for (const mode of MODES) {
 
-            const modes =
+                const stats = statsResult.results.find(
+                    s => s.mode === mode
+                );
 
-                {};
-
-
-            for (
-
-                const mode
-
-                of MODES
-
-            ) {
-
-
-                const elo =
-
-                    Number(
-
-                        player[mode]?.elo
-
-                    )
-
-                    ||
-
-                    0;
-
+                const elo = stats
+                    ? Number(stats.elo) || 0
+                    : 0;
 
                 modes[mode] = {
-
-
-                    elo:
-                        elo,
-
-
-                    tier:
-
-                        getTierFromElo(
-                            elo
-                        )
-
+                    elo,
+                    tier: getTierFromElo(elo),
+                    wins: stats
+                        ? Number(stats.wins) || 0
+                        : 0,
+                    losses: stats
+                        ? Number(stats.losses) || 0
+                        : 0,
+                    games_played: stats
+                        ? Number(stats.games_played) || 0
+                        : 0
                 };
-
-
             }
 
-
             return json({
-
-                success:
-                    true,
+                success: true,
 
                 player: {
-
-                    username:
-                        player.username,
-
-                    uuid:
-                        player.uuid,
-
-                    modes:
-                        modes
-
+                    username: player.username,
+                    uuid: player.uuid,
+                    created_at: player.created_at,
+                    updated_at: player.updated_at,
+                    modes
                 }
-
             });
-
-
         }
-
 
         /*
         =========================
-        ENDPOINT NOT FOUND
+        404
         =========================
         */
 
-
-        return json(
-
-            {
-
-                success:
-                    false,
-
-                error:
-                    "Endpoint not found",
-
-                path:
-                    path
-
-            },
-
-            404
-
-        );
-
-
+        return json({
+            success: false,
+            error: "Endpoint not found",
+            path
+        }, 404);
     }
-
-
 };
